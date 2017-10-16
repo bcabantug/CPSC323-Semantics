@@ -17,7 +17,10 @@ Tested using both IDE and command line
 //lexer header file and string library included
 #include "lexer.h"
 #include <string>
+#include <vector>
 
+
+vector <string> assemblyCommands;
 //Function Prototypes
 
 void Program(ifstream&, LexTok&); //
