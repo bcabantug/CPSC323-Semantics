@@ -25,10 +25,10 @@ vector <string> assemblyCommands;
 
 void Program(ifstream&, LexTok&); //
 void DeclList(ifstream&, LexTok&); //
-void Decl(ifstream&, LexTok&); //
+string Decl(ifstream&, LexTok&); //
 
-void VarList(ifstream&, LexTok&);
-void StmtList(ifstream&, LexTok&); //
+string VarList(ifstream&, LexTok&);
+string StmtList(ifstream&, LexTok&); //
 void Stmt(ifstream&, LexTok&); //
 void Assign(ifstream&, LexTok&); //
 void Read(ifstream&, LexTok&); //
@@ -103,43 +103,43 @@ void Program(ifstream& file, LexTok& token) {
 	//Consume token if present
 	expect(".", token, file);
 
-	//Output rule
-	/*cout << "Program => program [DeclList] [FuncList] begin [StmtList] end." << endl;*/
+	
 }
 
-//Grace and Brian
 void DeclList(ifstream& file, LexTok& token) {
+
+	//starts off the declarations of variables
+	assemblyCommands.push_back(".data");
 
 	//Check for initial declaration and loops back if there are more
 	do {
-		//Call Decl function
-		Decl(file, token);
+		//Call Decl and adds the statement to the assembly command
+		assemblyCommands.push_back(Decl(file, token));
 	} while (token.token.compare("Type") == 0);
 
-	//Output rule
-	cout << "DeclList => Decl {Decl}" << endl;
 }
 
-//Grace and Brian
-void Decl(ifstream& file, LexTok& token) {
+//Changing data type to return the data statements to save variable list
+string Decl(ifstream& file, LexTok& token) {
+
+	string decl = "";
 
 	//Call Type function
-	Type(file, token);
+	decl = decl + Type(file, token);
 
 	//Call ValList function
-	VarList(file, token);
+	decl = decl + VarList(file, token);
 
 	//Consume token if present
 	expect(";", token, file);
 
-
-	//Output rule
-	cout << "Decl => Type VarList ;" << endl;
+	//returns decl to add it to the variables list
+	return decl;
 }
 
 
 //Grace
-void Type(ifstream& file, LexTok& token) {
+string Type(ifstream& file, LexTok& token) {
 	//check for type
 	if (token.lexeme.compare("int") == 0)
 	{
@@ -151,7 +151,7 @@ void Type(ifstream& file, LexTok& token) {
 }
 
 //Grace
-void VarList(ifstream& file, LexTok& token) {
+string VarList(ifstream& file, LexTok& token) {
 	//consume Identifier
 	if (token.token.compare("Identifier") == 0)
 	{
@@ -175,7 +175,7 @@ void VarList(ifstream& file, LexTok& token) {
 }
 
 //Grace
-void StmtList(ifstream& file, LexTok& token) {
+string StmtList(ifstream& file, LexTok& token) {
 	//call Stmt function
 	Stmt(file, token);
 
