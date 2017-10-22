@@ -25,7 +25,7 @@ vector <string> assemblyCommands;
 
 void Program(ifstream&, LexTok&); //
 void DeclList(ifstream&, LexTok&); //
-string Decl(ifstream&, LexTok&); //
+vector<string> Decl(ifstream&, LexTok&); //
 
 string VarList(ifstream&, LexTok&);
 string StmtList(ifstream&, LexTok&); //
@@ -108,30 +108,60 @@ void Program(ifstream& file, LexTok& token) {
 
 void DeclList(ifstream& file, LexTok& token) {
 
+	vector<string> declL;
+
 	//starts off the declarations of variables
 	assemblyCommands.push_back(".data");
 
 	//Check for initial declaration and loops back if there are more
 	do {
-		//Call Decl and adds the statement to the assembly command
-		assemblyCommands.push_back(Decl(file, token));
+		//Call Decl and takes the list of declarations given to add to the main vector of commands
+		declL = Decl(file, token);
+
+
+		//loop to go through the vector 
+		for (vector<string>::iterator it = declL.begin(); it != declL.end(); it++) {
+			
+			//adds them to the main assembly Command vector
+			assemblyCommands.push_back(*it);
+		}
+
 	} while (token.token.compare("Type") == 0);
 
 }
 
 //Changing data type to return the data statements to save variable list
-string Decl(ifstream& file, LexTok& token) {
+vector<string> Decl(ifstream& file, LexTok& token) {
+	vector<string> decl;
 
-	string decl = "";
+	vector<string> vars;
+	string t = "";
 
 	//Call Type function
-	decl = decl + Type(file, token);
+	t =  Type(file, token);
 
 	//Call ValList function
-	decl = decl + VarList(file, token);
+	vars =  VarList(file, token);
 
 	//Consume token if present
 	expect(";", token, file);
+
+	//loop to set all the declarations
+	
+	for (vector<string>::iterator it = vars.begin(); it != vars.end(); it++) {
+		string d = "";
+
+		//gets the var
+		d = d + *it;
+
+		d = d + ":    ";
+		d = d + t;
+		d = d + "0";
+
+		//saves it in the decl vector to pass back
+		decl.push_back(d);
+	
+	}
 
 	//returns decl to add it to the variables list
 	return decl;
@@ -141,20 +171,31 @@ string Decl(ifstream& file, LexTok& token) {
 //Grace
 string Type(ifstream& file, LexTok& token) {
 	//check for type
+	string t = "";
+
+	//if the type is int, then return
 	if (token.lexeme.compare("int") == 0)
 	{
+
+		string t = ".word	";
+
 		//consume the token first
 		token = lexer(file);
-		//then output
-		/*cout << "Type => int | real | string" << endl;*/
 	}
+	return t;
 }
 
 //Grace
-string VarList(ifstream& file, LexTok& token) {
-	//consume Identifier
+vector<string> VarList(ifstream& file, LexTok& token) {
+	//vector to hold the identifier list and 
+	vector<string> ident;
+
 	if (token.token.compare("Identifier") == 0)
 	{
+		//adds the identifier to the temp vector
+		ident.push_back(token.lexeme);
+
+		//moves to the next token
 		token = lexer(file);
 	}
 
@@ -162,16 +203,19 @@ string VarList(ifstream& file, LexTok& token) {
 	while (token.lexeme.compare(",") == 0) {
 		//consume the token
 		token = lexer(file);
+
 		//check if next is another identifier
 		if (token.token.compare("Identifier") == 0)
 		{
+			//push the next identifier to the vector
+			ident.push_back(token.lexeme);
 			//get next token
 			token = lexer(file);
 		}
 	}//loop again if there is a comma following the identifier
 
-	 //output rule
-	/*cout << "VarList => Ident {,Ident}" << endl;*/
+	 //return the vector
+	return ident;
 }
 
 //Grace
