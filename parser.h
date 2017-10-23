@@ -1,14 +1,11 @@
 /* REUSING FOR PROJECT 3 / MODIFYING
 Brian Cabantug
 Grace Derderian
-
 Program #3
 CPSC 323-85
 Oct 27 2017
-
 Compilers used: Visual Studio 2013 (Visual C++ 12.0)
 XCode (g++ Version 5.4)
-
 Tested using both IDE and command line
 */
 #ifndef PARSER_H //header file protectors
@@ -22,16 +19,19 @@ Tested using both IDE and command line
 
 vector <string> assemblyCommands;
 //
-string tRegister[10] = { "","", "", "", "", "", "", "", "", "" };
+string tRegister[10] = { "", "", "", "", "", "", "", "", "", "" };
+
+int whileCount = 0;
 
 //Function Prototypes
 
 void Program(ifstream&, LexTok&); //
 void DeclList(ifstream&, LexTok&); //
 vector<string> Decl(ifstream&, LexTok&); //
+string Type(ifstream&, LexTok&);//
 
 vector<string> VarList(ifstream&, LexTok&);
-string StmtList(ifstream&, LexTok&); //
+void StmtList(ifstream&, LexTok&); //
 void Stmt(ifstream&, LexTok&); //
 void Assign(ifstream&, LexTok&); //
 void Read(ifstream&, LexTok&); //
@@ -39,10 +39,10 @@ void Write(ifstream&, LexTok&); //
 void If(ifstream&, LexTok&); //
 void While(ifstream&, LexTok&); //
 
-void Cond(ifstream&, LexTok&); //
-void RelOp(ifstream&, LexTok&); // 
-void Expr(ifstream&, LexTok&); //
-void Term(ifstream&, LexTok&); //
+string Cond(ifstream&, LexTok&); //
+string RelOp(ifstream&, LexTok&); // 
+string Expr(ifstream&, LexTok&); //
+string Term(ifstream&, LexTok&); //
 string Factor(ifstream&, LexTok&); //
 
 
@@ -90,7 +90,7 @@ void Program(ifstream& file, LexTok& token) {
 		//Call DeclList
 		DeclList(file, token);
 	}
-	
+
 	//Consume token if present
 	expect("begin", token, file);
 	//begins the assembly assignment to the 
@@ -109,7 +109,15 @@ void Program(ifstream& file, LexTok& token) {
 	//Consume token if present
 	expect(".", token, file);
 
-	
+	assemblyCommands.push_back("li $v0, 10");
+	assemblyCommands.push_back("syscall");
+
+	//output commands at end of programs
+	for (vector<string>::iterator it = assemblyCommands.begin(); it != assemblyCommands.end(); it++){
+		cout << *it << endl;
+	}
+
+
 }
 
 void DeclList(ifstream& file, LexTok& token) {
@@ -127,7 +135,7 @@ void DeclList(ifstream& file, LexTok& token) {
 
 		//loop to go through the vector 
 		for (vector<string>::iterator it = declL.begin(); it != declL.end(); it++) {
-			
+
 			//adds them to the main assembly Command vector
 			assemblyCommands.push_back(*it);
 		}
@@ -144,7 +152,7 @@ vector<string> Decl(ifstream& file, LexTok& token) {
 	string t = "";
 
 	//Call Type function
-	t =  Type(file, token);
+	t = Type(file, token);
 
 	//Call ValList function
 	vars = VarList(file, token);
@@ -153,10 +161,9 @@ vector<string> Decl(ifstream& file, LexTok& token) {
 	expect(";", token, file);
 
 	//loop to set all the declarations
-	
+
 	for (vector<string>::iterator it = vars.begin(); it != vars.end(); it++) {
 		string d = "";
-
 		//gets the var
 		d = d + *it;
 
@@ -166,7 +173,7 @@ vector<string> Decl(ifstream& file, LexTok& token) {
 
 		//saves it in the decl vector to pass back
 		decl.push_back(d);
-	
+
 	}
 
 	//returns decl to add it to the variables list
@@ -183,7 +190,7 @@ string Type(ifstream& file, LexTok& token) {
 	if (token.lexeme.compare("int") == 0)
 	{
 
-		string t = ".word	";
+		t = ".word	";
 
 		//consume the token first
 		token = lexer(file);
@@ -220,12 +227,12 @@ vector<string> VarList(ifstream& file, LexTok& token) {
 		}
 	}//loop again if there is a comma following the identifier
 
-	 //return the vector
+	//return the vector
 	return ident;
 }
 
 //Grace
-string StmtList(ifstream& file, LexTok& token) {
+void StmtList(ifstream& file, LexTok& token) {
 
 	//call Stmt function
 	Stmt(file, token);
@@ -245,48 +252,48 @@ void Stmt(ifstream& file, LexTok& token) {
 	if (token.token.compare("Identifier") == 0)
 	{	//calls Assign function and output rule
 		Assign(file, token);
-		cout << "Stmt => Assign" << endl;
+		/*cout << "Stmt => Assign" << endl;*/
 	}
 	//if token is read
 	else if (token.lexeme.compare("read") == 0)
 	{	//calls Read function and output rule
 		Read(file, token);
-		cout << "Stmt => Read" << endl;
+		/*cout << "Stmt => Read" << endl;*/
 	}
 	//if token is write
 	else if (token.lexeme.compare("write") == 0)
 	{
 		//calls Write function and output rule
 		Write(file, token);
-		cout << "Stmt => Write" << endl;
+		/*cout << "Stmt => Write" << endl;*/
 	}
 	//if token is if
 	else if (token.lexeme.compare("if") == 0)
 	{	//calls If function and output rule
 		If(file, token);
-		cout << "Stmt => If" << endl;
+		/*cout << "Stmt => If" << endl;*/
 	}
 	//if token is while
 	else if (token.lexeme.compare("while") == 0)
 	{	//calls While function and output rule
 		While(file, token);
-		cout << "Stmt => While" << endl;
+		/*cout << "Stmt => While" << endl;*/
 	}
 }
 
 //Grace
 void Assign(ifstream& file, LexTok& token) {
 	vector<string> assign;
-	
-	string i = "";
-	string val = "";
+
+	string ident = "";
+	string reg = "";
 
 
 
 	//if token is Identifier, consume token
 	if (token.token.compare("Identifier") == 0)
 	{
-		i = token.lexeme;
+		ident = token.lexeme;
 
 		token = lexer(file);
 	}
@@ -295,7 +302,9 @@ void Assign(ifstream& file, LexTok& token) {
 	expect(":=", token, file);
 
 	//call Expr function
-	Expr(file, token);
+	reg = Expr(file, token);
+
+	assemblyCommands.push_back("sw " + reg + ", " + ident);
 
 	expect(";", token, file);
 	//output rule
@@ -305,11 +314,20 @@ void Assign(ifstream& file, LexTok& token) {
 //BRIAN
 void Read(ifstream& file, LexTok& token) {
 
+	vector<string> idents;
+
+
 	expect("read", token, file);
 
 	expect("(", token, file);
 	//call VarList func
-	VarList(file, token);
+	idents = VarList(file, token);
+
+	for (vector<string>::iterator it = idents.begin(); it != idents.end(); it++){
+		assemblyCommands.push_back("li $v0, 5");
+		assemblyCommands.push_back("syscall");
+		assemblyCommands.push_back("sw $v0, " + *it);
+	}
 
 	expect(")", token, file);
 
@@ -317,25 +335,39 @@ void Read(ifstream& file, LexTok& token) {
 	//output rule
 	/*cout << "Read => read ( VarList ) ; " << endl;*/
 }
+
+
+
 //Brian
 void Write(ifstream& file, LexTok& token) {
+	
+	vector<string> exprList;
+	
 	//after consuming write lexeme
 	expect("write", token, file);
 
 	expect("(", token, file);
 
 	//keeps on finding an expression as long as the token matches with the comma
-	Expr(file, token);
+	exprList.push_back(Expr(file, token));
 
 	while (token.lexeme.compare(",") == 0) {
 		//consumes comma token
 		token = lexer(file);
-		Expr(file, token);
+		exprList.push_back(Expr(file, token));
 	}
+
+	for (vector<string>::iterator it = exprList.begin(); it != exprList.end(); it++){
+		assemblyCommands.push_back("li $v0, 1");
+		assemblyCommands.push_back("move $a0, " + *it);
+		assemblyCommands.push_back("syscall");
+	}
+
 
 	expect(")", token, file);
 
 	expect(";", token, file);
+
 
 	//output rule
 	/*cout << "Write => write ( Expr {, Expr} ) ;" << endl;*/
@@ -399,13 +431,29 @@ void If(ifstream& file, LexTok& token) {
 
 void While(ifstream& file, LexTok& token) {
 	//consume while token/keyword
+	whileCount++;
+
+	string whil = "while" + to_string(whileCount) + ":";
+	string endWhil = "endWhl" + to_string(whileCount);
+
+
+	string cond = "";
+
 	if (token.lexeme.compare("while") == 0) {
+		//starts the while loop
+		assemblyCommands.push_back(whil);
+		
 		token = lexer(file);
 	}
 
 	expect("(", token, file);
 	//calls Cond function
-	Cond(file, token);
+	cond = Cond(file, token);
+	//adds the endWhile jump to the condition statement
+	cond = cond + endWhil;
+	//add condition statement to the commands list
+	assemblyCommands.push_back(cond);
+
 
 	expect(")", token, file);
 
@@ -419,35 +467,81 @@ void While(ifstream& file, LexTok& token) {
 
 	expect("end", token, file);
 
+	assemblyCommands.push_back("b " + whil);
+	assemblyCommands.push_back(endWhil + ":");
+
+
 	//Output rule
 	/*cout << "While => while ( Cond ) begin [StmtList] end" << endl;*/
 }
 
 //Grace
-void Cond(ifstream& file, LexTok& token) {
+string Cond(ifstream& file, LexTok& token) {
+
+	string cond = "";
+
+	string r1 = "";
+	string r2 = "";
+
+	string relo = "";
 
 	//Call Expr function
-	Expr(file, token);
+	r1 = Expr(file, token);
 
 	//Call RelOp function
-	RelOp(file, token);
+	relo =  RelOp(file, token);
 
 	//Call Expr function
-	Expr(file, token);
+	r2 = Expr(file, token);
 
+	//complete initial statement of branch
+	cond = relo + " " + r1 + ", " + r2 + ", ";
+
+	return cond;
 	//Ouput rule
 	/*cout << "Cond => Expr RelOp Expr" << endl;*/
 }
 
 //Grace
-void RelOp(ifstream& file, LexTok& token) {
+string RelOp(ifstream& file, LexTok& token) {
+
+	string relator = "";
 
 	//Check if it is a RelOp
 	if (token.token.compare("RelOp") == 0)
 	{
+		//equal
+		if (token.lexeme.compare("=") == 0){
+			//return opposite branch for the comparison
+			relator = "bne";
+		}
+		//not equal
+		else if (token.lexeme.compare("<>") == 0){
+			relator = "beq";
+		}
+		//less than
+		else if (token.lexeme.compare("<") == 0){
+			relator = "bge";
+		}
+		//greater than
+		else if (token.lexeme.compare(">") == 0){
+			relator = "ble";
+		}
+		//less or equal
+		else if (token.lexeme.compare("<=") == 0){
+			relator = "bgt";
+		}
+		//greater or equal
+		else{
+			relator = "blt";
+		}
+
+
 		//consume lexeme
 		token = lexer(file);
 	}
+
+	return relator;
 
 }
 
@@ -470,10 +564,10 @@ string Expr(ifstream& file, LexTok& token) {
 			r2 = Term(file, token);
 
 			//gets add command
-			assemblyCommands.push_back("add "+ r1 + ", " + r1 + ", " + r2);
+			assemblyCommands.push_back("add " + r1 + ", " + r1 + ", " + r2);
 			//clears the register that is unused after calc
 			tRegister[r2[2]] = "";
-		
+
 		}
 		else if (token.lexeme.compare("-") == 0) {
 			//consume token
@@ -481,16 +575,14 @@ string Expr(ifstream& file, LexTok& token) {
 
 			//call the factor if it is factor
 			r2 = Term(file, token);
-		
+
 			//gets sub command
 			assemblyCommands.push_back("sub " + r1 + ", " + r1 + ", " + r2);
 			//clears the register that is unused after calc
 			tRegister[r2[2]] = "";
-
-		
 		}
 
-		
+
 	}
 
 	//return the register with the value
@@ -513,7 +605,7 @@ string Term(ifstream& file, LexTok& token) {
 	if (token.lexeme.compare("*") == 0 || token.lexeme.compare("/") == 0) {
 		//multiply
 		if (token.lexeme.compare("*") == 0) {
-			
+
 
 			//consume token
 			token = lexer(file);
@@ -521,14 +613,14 @@ string Term(ifstream& file, LexTok& token) {
 			//call the factor if it is factor
 			r2 = Factor(file, token);
 			//set commands
-			assemblyCommands.push_back("mult "+ r1 + ", " + r2);
+			assemblyCommands.push_back("mult " + r1 + ", " + r2);
 			assemblyCommands.push_back("mflo " + r1);
 			//clear unused register after use
 			tRegister[r2[2]] = "";
 		}
 		//divide
 		else if (token.lexeme.compare("/") == 0) {
-		
+
 			//consume token
 			token = lexer(file);
 
@@ -540,15 +632,15 @@ string Term(ifstream& file, LexTok& token) {
 			//clear unused register after use
 			tRegister[r1[2]] = "";
 		}
-		
+
 	}
 
 	//return register holding the value
-	return r1; 
+	return r1;
 
 	//Output rule
 	/*cout << "Term => Factor { (*|/) Factor } " << endl;*/
-	
+
 }
 
 
@@ -582,7 +674,7 @@ string Factor(ifstream& file, LexTok& token) {
 	}
 	else if (token.token.compare("IntConst") == 0)
 	{
-		 in = token.lexeme;
+		in = token.lexeme;
 
 		//Consume token
 		token = lexer(file);
@@ -604,13 +696,13 @@ string Factor(ifstream& file, LexTok& token) {
 		//Output rule
 		/*cout << "Factor => IntConst" << endl;*/
 	}
-	
+
 	else if (token.lexeme.compare("(") == 0)
 	{
 
 		expect("(", token, file);
 		//Call Expr function
-		Expr(file, token);
+		reg = Expr(file, token);
 
 		expect(")", token, file);
 
@@ -621,43 +713,5 @@ string Factor(ifstream& file, LexTok& token) {
 	return reg;
 
 }
-
-//Grace
-//void FuncCall(ifstream& file, LexTok& token) {
-//	//assuming the Identifier lexeme has already been consumed
-//
-//	expect("(", token, file);
-//
-//	//Check if there is an ArgList
-//	if ((!token.lexeme.compare(")")) == 0) {
-//		//Call ArgList function if there is
-//		ArgList(file, token);
-//	}
-//
-//	expect(")", token, file);
-//
-//	//Output rule
-//	cout << "FuncCall => Ident ( [ArgList] ) " << endl;
-//}
-//
-////Grace
-//void ArgList(ifstream& file, LexTok& token) {
-//
-//	//Call Expr function
-//	Expr(file, token);
-//
-//	//Check if there is another expression
-//	while (token.lexeme.compare(",") == 0) {
-//		expect(",", token, file);
-//
-//		//Call Expr function
-//		Expr(file, token);
-//	}
-//
-//	//Output rule
-//	cout << "ArgList => Expr { ,Expr} " << endl;
-//}
-
-
 
 #endif
