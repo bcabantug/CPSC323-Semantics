@@ -27,7 +27,7 @@ void Program(ifstream&, LexTok&); //
 void DeclList(ifstream&, LexTok&); //
 vector<string> Decl(ifstream&, LexTok&); //
 
-string VarList(ifstream&, LexTok&);
+vector<string> VarList(ifstream&, LexTok&);
 string StmtList(ifstream&, LexTok&); //
 void Stmt(ifstream&, LexTok&); //
 void Assign(ifstream&, LexTok&); //
@@ -141,7 +141,7 @@ vector<string> Decl(ifstream& file, LexTok& token) {
 	t =  Type(file, token);
 
 	//Call ValList function
-	vars =  VarList(file, token);
+	vars = VarList(file, token);
 
 	//Consume token if present
 	expect(";", token, file);
