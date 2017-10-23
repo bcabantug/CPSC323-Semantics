@@ -21,6 +21,9 @@ Tested using both IDE and command line
 
 
 vector <string> assemblyCommands;
+//
+string tRegister[10] = { "","", "", "", "", "", "", "", "", "" };
+
 //Function Prototypes
 
 void Program(ifstream&, LexTok&); //
@@ -40,7 +43,7 @@ void Cond(ifstream&, LexTok&); //
 void RelOp(ifstream&, LexTok&); // 
 void Expr(ifstream&, LexTok&); //
 void Term(ifstream&, LexTok&); //
-void Factor(ifstream&, LexTok&); //
+string Factor(ifstream&, LexTok&); //
 
 
 //parser function that starts the top down recursion for grammar rules that takes in the file
@@ -90,6 +93,9 @@ void Program(ifstream& file, LexTok& token) {
 	
 	//Consume token if present
 	expect("begin", token, file);
+	//begins the assembly assignment to the 
+	assemblyCommands.push_back(".text");
+	assemblyCommands.push_back("main:");
 
 	//Check for StmtList
 	if ((!(token.lexeme.compare("end"))) == 0) {
@@ -220,6 +226,7 @@ vector<string> VarList(ifstream& file, LexTok& token) {
 
 //Grace
 string StmtList(ifstream& file, LexTok& token) {
+
 	//call Stmt function
 	Stmt(file, token);
 
@@ -269,9 +276,18 @@ void Stmt(ifstream& file, LexTok& token) {
 
 //Grace
 void Assign(ifstream& file, LexTok& token) {
+	vector<string> assign;
+	
+	string i = "";
+	string val = "";
+
+
+
 	//if token is Identifier, consume token
 	if (token.token.compare("Identifier") == 0)
 	{
+		i = token.lexeme;
+
 		token = lexer(file);
 	}
 
@@ -436,69 +452,155 @@ void RelOp(ifstream& file, LexTok& token) {
 }
 
 //Grace
-void Expr(ifstream& file, LexTok& token) {
+string Expr(ifstream& file, LexTok& token) {
+
+	string r1 = "";
+	string r2 = "";
 
 	//Call Term function
-	Term(file, token);
+	r1 = Term(file, token);
 
 	//If lexeme is + or -
 	if (token.lexeme.compare("+") == 0 || token.lexeme.compare("-") == 0) {
-		//consume token
-		token = lexer(file);
+		if (token.lexeme.compare("+") == 0) {
+			//consume token
+			token = lexer(file);
 
-		//call the factor if it is factor
-		Term(file, token);
+			//call the factor if it is factor
+			r2 = Term(file, token);
+
+			//gets add command
+			assemblyCommands.push_back("add "+ r1 + ", " + r1 + ", " + r2);
+			//clears the register that is unused after calc
+			tRegister[r2[2]] = "";
+		
+		}
+		else if (token.lexeme.compare("-") == 0) {
+			//consume token
+			token = lexer(file);
+
+			//call the factor if it is factor
+			r2 = Term(file, token);
+		
+			//gets sub command
+			assemblyCommands.push_back("sub " + r1 + ", " + r1 + ", " + r2);
+			//clears the register that is unused after calc
+			tRegister[r2[2]] = "";
+
+		
+		}
+
+		
 	}
 
+	//return the register with the value
+	return r1;
+
 	//Output rule
-	cout << "Expr => Term { (+|-) Term }" << endl;
+	/*cout << "Expr => Term { (+|-) Term }" << endl;*/
 }
 
 //Grace
-void Term(ifstream& file, LexTok& token) {
+string Term(ifstream& file, LexTok& token) {
+	string r1 = "";
+	string r2 = "";
+
 
 	//Call Factor function
-	Factor(file, token);
+	r1 = Factor(file, token);
 
 	//Check if lexeme is * or /
 	if (token.lexeme.compare("*") == 0 || token.lexeme.compare("/") == 0) {
-		//consume token
-		token = lexer(file);
+		//multiply
+		if (token.lexeme.compare("*") == 0) {
+			
 
-		//call the factor if it is factor
-		Factor(file, token);
+			//consume token
+			token = lexer(file);
+
+			//call the factor if it is factor
+			r2 = Factor(file, token);
+			//set commands
+			assemblyCommands.push_back("mult "+ r1 + ", " + r2);
+			assemblyCommands.push_back("mflo " + r1);
+			//clear unused register after use
+			tRegister[r2[2]] = "";
+		}
+		//divide
+		else if (token.lexeme.compare("/") == 0) {
+		
+			//consume token
+			token = lexer(file);
+
+			//call the factor if it is factor
+			r2 = Factor(file, token);
+			//set commands
+			assemblyCommands.push_back("div " + r1 + ", " + r2);
+			assemblyCommands.push_back("mflo " + r1);
+			//clear unused register after use
+			tRegister[r1[2]] = "";
+		}
+		
 	}
 
+	//return register holding the value
+	return r1; 
+
 	//Output rule
-	cout << "Term => Factor { (*|/) Factor } " << endl;
+	/*cout << "Term => Factor { (*|/) Factor } " << endl;*/
+	
 }
 
+
 //Grace
-void Factor(ifstream& file, LexTok& token) {
+string Factor(ifstream& file, LexTok& token) {
+
+	string reg = "$t";
+	string in = "";
 
 	//Check if identifier, intConst, realConst, strConst
 	if (token.token.compare("Identifier") == 0)
 	{
+		in = token.lexeme;
 		//consume token
 		token = lexer(file);
 
-		////check if funcCall or Identifiers
-		//if (token.lexeme.compare("(") == 0) {
-		//	//Call FuncCall
-		//	FuncCall(file, token);
-		//	//Output rule for function call
-		//	cout << "Factor => FuncCall" << endl;
-		//}
+		for (int i = 0; i < 10; i++) {
+			//if the temp register is empty/not used yet
+			if (tRegister[i] == "") {
+				//assign it as the register to use for assignment
+				reg = reg + to_string(i);
+				tRegister[i] = in;
+				break;
+			}
 
-		/*else {*/
-			//Output rule for identifier
-			/*cout << "Factor => Ident" << endl;*/
-		/*}*/
+		}
+
+		assemblyCommands.push_back("lw " + reg + ", " + in);
+
+
 	}
 	else if (token.token.compare("IntConst") == 0)
 	{
+		 in = token.lexeme;
+
 		//Consume token
 		token = lexer(file);
+
+		for (int i = 0; i < 10; i++) {
+			//if the temp register is empty/not used yet
+			if (tRegister[i] == "") {
+				//assign it as the register to use for assignment
+				reg = reg + to_string(i);
+				tRegister[i] = in;
+				break;
+			}
+
+		}
+
+		assemblyCommands.push_back("li " + reg + ", " + in);
+
+
 		//Output rule
 		/*cout << "Factor => IntConst" << endl;*/
 	}
@@ -515,6 +617,8 @@ void Factor(ifstream& file, LexTok& token) {
 		//Output rule
 		/*cout << "Factor => ( Expr )" << endl;*/
 	}
+	//returns the register the value was stored in
+	return reg;
 
 }
 
