@@ -19,7 +19,7 @@ Tested using both IDE and command line
 
 vector <string> assemblyCommands;
 //
-string tRegister[10] = { "", "", "", "", "", "", "", "", "", "" };
+string tRegister[10] = {};
 
 int whileCount = 0;
 
@@ -46,7 +46,7 @@ string Term(ifstream&, LexTok&); //
 string Factor(ifstream&, LexTok&); //
 
 
-//parser function that starts the top down recursion for grammar rules that takes in the file
+								   //parser function that starts the top down recursion for grammar rules that takes in the file
 void parser(ifstream &file) {
 	//calls the first lexeme/token combo in the file
 	LexTok curToken = lexer(file);
@@ -113,7 +113,7 @@ void Program(ifstream& file, LexTok& token) {
 	assemblyCommands.push_back("syscall");
 
 	//output commands at end of programs
-	for (vector<string>::iterator it = assemblyCommands.begin(); it != assemblyCommands.end(); it++){
+	for (vector<string>::iterator it = assemblyCommands.begin(); it != assemblyCommands.end(); it++) {
 		cout << *it << endl;
 	}
 
@@ -176,7 +176,7 @@ vector<string> Decl(ifstream& file, LexTok& token) {
 
 	}
 
-	//returns decl to add it to the variables list
+	//returns decl vector
 	return decl;
 }
 
@@ -227,7 +227,7 @@ vector<string> VarList(ifstream& file, LexTok& token) {
 		}
 	}//loop again if there is a comma following the identifier
 
-	//return the vector
+	 //return the vector
 	return ident;
 }
 
@@ -306,6 +306,11 @@ void Assign(ifstream& file, LexTok& token) {
 
 	assemblyCommands.push_back("sw " + reg + ", " + ident);
 
+	//clear register after storing value back into the variable
+	int rNum = reg[2]-'0';
+
+	tRegister[rNum] = "";
+
 	expect(";", token, file);
 	//output rule
 	/*cout << "Assign => Ident := Expr;" << endl;*/
@@ -323,7 +328,7 @@ void Read(ifstream& file, LexTok& token) {
 	//call VarList func
 	idents = VarList(file, token);
 
-	for (vector<string>::iterator it = idents.begin(); it != idents.end(); it++){
+	for (vector<string>::iterator it = idents.begin(); it != idents.end(); it++) {
 		assemblyCommands.push_back("li $v0, 5");
 		assemblyCommands.push_back("syscall");
 		assemblyCommands.push_back("sw $v0, " + *it);
@@ -340,9 +345,11 @@ void Read(ifstream& file, LexTok& token) {
 
 //Brian
 void Write(ifstream& file, LexTok& token) {
-	
+
 	vector<string> exprList;
-	
+
+	int i = 0;
+
 	//after consuming write lexeme
 	expect("write", token, file);
 
@@ -351,17 +358,26 @@ void Write(ifstream& file, LexTok& token) {
 	//keeps on finding an expression as long as the token matches with the comma
 	exprList.push_back(Expr(file, token));
 
+	assemblyCommands.push_back("li $v0, 1");
+	assemblyCommands.push_back("move $a0, " + exprList[i]);
+	assemblyCommands.push_back("syscall");
+
 	while (token.lexeme.compare(",") == 0) {
 		//consumes comma token
+		i++;
 		token = lexer(file);
 		exprList.push_back(Expr(file, token));
+
+		assemblyCommands.push_back("li $v0, 1");
+		assemblyCommands.push_back("move $a0, " + exprList[i]);
+		assemblyCommands.push_back("syscall");
 	}
 
-	for (vector<string>::iterator it = exprList.begin(); it != exprList.end(); it++){
+	/*for (vector<string>::iterator it = exprList.begin(); it != exprList.end(); it++) {
 		assemblyCommands.push_back("li $v0, 1");
 		assemblyCommands.push_back("move $a0, " + *it);
 		assemblyCommands.push_back("syscall");
-	}
+	}*/
 
 
 	expect(")", token, file);
@@ -433,7 +449,7 @@ void While(ifstream& file, LexTok& token) {
 	//consume while token/keyword
 	whileCount++;
 
-	string whil = "while" + to_string(whileCount) + ":";
+	string whil = "while" + to_string(whileCount);
 	string endWhil = "endWhl" + to_string(whileCount);
 
 
@@ -441,8 +457,8 @@ void While(ifstream& file, LexTok& token) {
 
 	if (token.lexeme.compare("while") == 0) {
 		//starts the while loop
-		assemblyCommands.push_back(whil);
-		
+		assemblyCommands.push_back(whil + ":");
+
 		token = lexer(file);
 	}
 
@@ -489,7 +505,7 @@ string Cond(ifstream& file, LexTok& token) {
 	r1 = Expr(file, token);
 
 	//Call RelOp function
-	relo =  RelOp(file, token);
+	relo = RelOp(file, token);
 
 	//Call Expr function
 	r2 = Expr(file, token);
@@ -511,28 +527,28 @@ string RelOp(ifstream& file, LexTok& token) {
 	if (token.token.compare("RelOp") == 0)
 	{
 		//equal
-		if (token.lexeme.compare("=") == 0){
+		if (token.lexeme.compare("=") == 0) {
 			//return opposite branch for the comparison
 			relator = "bne";
 		}
 		//not equal
-		else if (token.lexeme.compare("<>") == 0){
+		else if (token.lexeme.compare("<>") == 0) {
 			relator = "beq";
 		}
 		//less than
-		else if (token.lexeme.compare("<") == 0){
+		else if (token.lexeme.compare("<") == 0) {
 			relator = "bge";
 		}
 		//greater than
-		else if (token.lexeme.compare(">") == 0){
+		else if (token.lexeme.compare(">") == 0) {
 			relator = "ble";
 		}
 		//less or equal
-		else if (token.lexeme.compare("<=") == 0){
+		else if (token.lexeme.compare("<=") == 0) {
 			relator = "bgt";
 		}
 		//greater or equal
-		else{
+		else {
 			relator = "blt";
 		}
 
@@ -555,7 +571,7 @@ string Expr(ifstream& file, LexTok& token) {
 	r1 = Term(file, token);
 
 	//If lexeme is + or -
-	if (token.lexeme.compare("+") == 0 || token.lexeme.compare("-") == 0) {
+	while (token.lexeme.compare("+") == 0 || token.lexeme.compare("-") == 0) {
 		if (token.lexeme.compare("+") == 0) {
 			//consume token
 			token = lexer(file);
@@ -566,7 +582,8 @@ string Expr(ifstream& file, LexTok& token) {
 			//gets add command
 			assemblyCommands.push_back("add " + r1 + ", " + r1 + ", " + r2);
 			//clears the register that is unused after calc
-			tRegister[r2[2]] = "";
+			int mo = r2[2] - '0';
+			tRegister[mo] = "";
 
 		}
 		else if (token.lexeme.compare("-") == 0) {
@@ -579,7 +596,8 @@ string Expr(ifstream& file, LexTok& token) {
 			//gets sub command
 			assemblyCommands.push_back("sub " + r1 + ", " + r1 + ", " + r2);
 			//clears the register that is unused after calc
-			tRegister[r2[2]] = "";
+			int mo = r2[2] - '0';
+			tRegister[mo] = "";
 		}
 
 
@@ -602,7 +620,7 @@ string Term(ifstream& file, LexTok& token) {
 	r1 = Factor(file, token);
 
 	//Check if lexeme is * or /
-	if (token.lexeme.compare("*") == 0 || token.lexeme.compare("/") == 0) {
+	while (token.lexeme.compare("*") == 0 || token.lexeme.compare("/") == 0) {
 		//multiply
 		if (token.lexeme.compare("*") == 0) {
 
@@ -616,7 +634,9 @@ string Term(ifstream& file, LexTok& token) {
 			assemblyCommands.push_back("mult " + r1 + ", " + r2);
 			assemblyCommands.push_back("mflo " + r1);
 			//clear unused register after use
-			tRegister[r2[2]] = "";
+			int mo = r2[2] - '0';
+
+			tRegister[mo] = "";
 		}
 		//divide
 		else if (token.lexeme.compare("/") == 0) {
@@ -630,7 +650,8 @@ string Term(ifstream& file, LexTok& token) {
 			assemblyCommands.push_back("div " + r1 + ", " + r2);
 			assemblyCommands.push_back("mflo " + r1);
 			//clear unused register after use
-			tRegister[r1[2]] = "";
+			int mo = r2[2] - '0';
+			tRegister[mo] = "";
 		}
 
 	}
@@ -659,7 +680,7 @@ string Factor(ifstream& file, LexTok& token) {
 
 		for (int i = 0; i < 10; i++) {
 			//if the temp register is empty/not used yet
-			if (tRegister[i] == "") {
+			if (tRegister[i].compare("") == 0) {
 				//assign it as the register to use for assignment
 				reg = reg + to_string(i);
 				tRegister[i] = in;
@@ -681,7 +702,7 @@ string Factor(ifstream& file, LexTok& token) {
 
 		for (int i = 0; i < 10; i++) {
 			//if the temp register is empty/not used yet
-			if (tRegister[i] == "") {
+			if (tRegister[i].compare("") == 0) {
 				//assign it as the register to use for assignment
 				reg = reg + to_string(i);
 				tRegister[i] = in;
