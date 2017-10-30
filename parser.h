@@ -22,6 +22,9 @@ vector <string> assemblyCommands;
 string tRegister[10] = {};
 
 int whileCount = 0;
+int ifCount = 1;
+int elsifCount = 0;
+
 
 //Function Prototypes
 
@@ -252,32 +255,27 @@ void Stmt(ifstream& file, LexTok& token) {
 	if (token.token.compare("Identifier") == 0)
 	{	//calls Assign function and output rule
 		Assign(file, token);
-		/*cout << "Stmt => Assign" << endl;*/
 	}
 	//if token is read
 	else if (token.lexeme.compare("read") == 0)
 	{	//calls Read function and output rule
 		Read(file, token);
-		/*cout << "Stmt => Read" << endl;*/
 	}
 	//if token is write
 	else if (token.lexeme.compare("write") == 0)
 	{
 		//calls Write function and output rule
 		Write(file, token);
-		/*cout << "Stmt => Write" << endl;*/
 	}
 	//if token is if
 	else if (token.lexeme.compare("if") == 0)
 	{	//calls If function and output rule
 		If(file, token);
-		/*cout << "Stmt => If" << endl;*/
 	}
 	//if token is while
 	else if (token.lexeme.compare("while") == 0)
 	{	//calls While function and output rule
 		While(file, token);
-		/*cout << "Stmt => While" << endl;*/
 	}
 }
 
@@ -373,33 +371,29 @@ void Write(ifstream& file, LexTok& token) {
 		assemblyCommands.push_back("syscall");
 	}
 
-	/*for (vector<string>::iterator it = exprList.begin(); it != exprList.end(); it++) {
-		assemblyCommands.push_back("li $v0, 1");
-		assemblyCommands.push_back("move $a0, " + *it);
-		assemblyCommands.push_back("syscall");
-	}*/
-
-
 	expect(")", token, file);
 
 	expect(";", token, file);
 
-
-	//output rule
-	/*cout << "Write => write ( Expr {, Expr} ) ;" << endl;*/
 }
 
 //BRIAN 
 void If(ifstream& file, LexTok& token) {
+	string cond = "";
+	
+
 	//consumes if
 	expect("if", token, file);
 
 	expect("(", token, file);
 
 	//calls Cond function
-	Cond(file, token);
+	cond = Cond(file, token);
 
 	expect(")", token, file);
+
+	//pushes the first endIf to fulfill the first condition
+	assemblyCommands.push_back(cond + "endIf" + to_string(ifCount));
 
 	expect("begin", token, file);
 
@@ -407,6 +401,14 @@ void If(ifstream& file, LexTok& token) {
 	StmtList(file, token);
 
 	expect("end", token, file);
+
+	
+	//branch to endIf
+	assemblyCommands.push_back("b endIf" + to_string(ifCount));
+	
+	//calls the endIf branch
+	assemblyCommands.push_back("endIf" + to_string(ifCount) + ":");
+
 
 	//elseif statements if there are any
 	if (token.lexeme.compare("elsif") == 0) {
@@ -441,8 +443,6 @@ void If(ifstream& file, LexTok& token) {
 		StmtList(file, token);
 		expect("end", token, file);
 	}
-	//output If rule
-	/*cout << "If => if ( Cond ) begin StmtList end { elsif ( Cond ) begin StmtList end } [else begin StmtList end ]" << endl;*/
 }
 
 void While(ifstream& file, LexTok& token) {
@@ -474,6 +474,10 @@ void While(ifstream& file, LexTok& token) {
 	expect(")", token, file);
 
 	expect("begin", token, file);
+
+	//clear registers used in comparison for use in the loop
+
+
 
 	//checks for stmtList if there
 	if (token.token.compare("Identifier") == 0 || token.lexeme.compare("read") == 0 || token.lexeme.compare("write") == 0 || token.lexeme.compare("if") == 0 || token.lexeme.compare("while") == 0) {
@@ -513,9 +517,15 @@ string Cond(ifstream& file, LexTok& token) {
 	//complete initial statement of branch
 	cond = relo + " " + r1 + ", " + r2 + ", ";
 
+	//clears the registers used in the conditional to free up for the following function
+	int mo = r1[2] - '0';
+	tRegister[mo] = "";
+	
+	mo = r2[2] - '0';
+	tRegister[mo] = "";
+
+
 	return cond;
-	//Ouput rule
-	/*cout << "Cond => Expr RelOp Expr" << endl;*/
 }
 
 //Grace
