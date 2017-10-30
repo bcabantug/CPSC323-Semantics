@@ -25,8 +25,10 @@ vector<string> list;
 
 vector <string> ifOrder;
 
+vector<int> location;
+
 int whileCount = 0;
-int ifCount = 1;
+int ifCount = 0;
 int elsifCount = 0;
 
 
@@ -53,7 +55,7 @@ string Term(ifstream&, LexTok&); //
 string Factor(ifstream&, LexTok&); //
 
 
-								   //parser function that starts the top down recursion for grammar rules that takes in the file
+//parser function that starts the top down recursion for grammar rules that takes in the file
 void parser(ifstream &file) {
 	//calls the first lexeme/token combo in the file
 	LexTok curToken = lexer(file);
@@ -175,6 +177,26 @@ vector<string> Decl(ifstream& file, LexTok& token) {
 		//gets the var
 		d = d + *it;
 
+		if (list.empty() == true){
+			list.push_back(d);
+		}
+		else{
+			for (vector<string>::iterator il = list.begin(); il != list.end(); il++){
+				if (il->compare(d) == 0){
+					error = true;
+					break;
+				}
+			}
+		}
+		
+		if (error == true){
+			cout << "error:" << d << " is declared more than once" << endl;
+		}
+		else{
+			list.push_back(d);
+		}
+		
+
 		d = d + ":    ";
 		d = d + t;
 		d = d + "0";
@@ -235,7 +257,7 @@ vector<string> VarList(ifstream& file, LexTok& token) {
 		}
 	}//loop again if there is a comma following the identifier
 
-	 //return the vector
+	//return the vector
 	return ident;
 }
 
@@ -259,6 +281,23 @@ void Stmt(ifstream& file, LexTok& token) {
 	//if token is identifier
 	if (token.token.compare("Identifier") == 0)
 	{	//calls Assign function and output rule
+
+		//checks if identifier was declared
+		bool err = false;
+		for (vector<string>::iterator it = list.begin(); it != list.end(); it++){
+			if (token.lexeme.compare(*it) != 0){
+				err = true;
+			}
+			else{
+				err = false;
+				break;
+			}
+		}//outputs error if found
+		if (err == true){
+			cout << "error: using " << token.lexeme << " without declaring first" << endl;
+		}
+
+
 		Assign(file, token);
 	}
 	//if token is read
@@ -275,6 +314,8 @@ void Stmt(ifstream& file, LexTok& token) {
 	//if token is if
 	else if (token.lexeme.compare("if") == 0)
 	{	//calls If function and output rule
+		//saves the count of if that is called
+		ifCount++;
 		If(file, token);
 	}
 	//if token is while
@@ -310,7 +351,7 @@ void Assign(ifstream& file, LexTok& token) {
 	assemblyCommands.push_back("sw " + reg + ", " + ident);
 
 	//clear register after storing value back into the variable
-	int rNum = reg[2]-'0';
+	int rNum = reg[2] - '0';
 
 	tRegister[rNum] = "";
 
@@ -330,6 +371,25 @@ void Read(ifstream& file, LexTok& token) {
 	expect("(", token, file);
 	//call VarList func
 	idents = VarList(file, token);
+	string errorVar = "";
+
+	//first check if the identifier is present from the declaration list
+	bool err = false;
+	for (vector<string>::iterator ito = idents.begin(); ito != idents.end(); ito++){
+		for (vector<string>::iterator it = list.begin(); it != list.end(); it++){
+			if (ito->compare(*it) != 0){
+				err = true;
+				errorVar = *ito;
+			}
+			else{
+				err = false;
+				break;
+			}
+		}
+	}
+	if (err == true){
+		cout << "error: using " << errorVar << " without declaring first" << endl;
+	}
 
 	for (vector<string>::iterator it = idents.begin(); it != idents.end(); it++) {
 		assemblyCommands.push_back("li $v0, 5");
@@ -365,6 +425,10 @@ void Write(ifstream& file, LexTok& token) {
 	assemblyCommands.push_back("move $a0, " + exprList[i]);
 	assemblyCommands.push_back("syscall");
 
+	//clear register used
+	int regNum = exprList[i][2] - '0';
+	tRegister[regNum] = "";
+
 	while (token.lexeme.compare(",") == 0) {
 		//consumes comma token
 		i++;
@@ -374,6 +438,9 @@ void Write(ifstream& file, LexTok& token) {
 		assemblyCommands.push_back("li $v0, 1");
 		assemblyCommands.push_back("move $a0, " + exprList[i]);
 		assemblyCommands.push_back("syscall");
+		//clear register used
+		int regNum = exprList[i][2] - '0';
+		tRegister[regNum] = "";
 	}
 
 	expect(")", token, file);
@@ -385,7 +452,7 @@ void Write(ifstream& file, LexTok& token) {
 //BRIAN 
 void If(ifstream& file, LexTok& token) {
 	string cond = "";
-	
+
 	//keeps the current count of how many if's have been encountered locally
 	int countOfIf = ifCount;
 
@@ -402,6 +469,7 @@ void If(ifstream& file, LexTok& token) {
 
 	//pushes the first endIf to fulfill the first condition (incomplete statement, will add branch to go to after checking)
 	assemblyCommands.push_back(cond);
+	location.push_back(assemblyCommands.size() - 1);
 
 	ifOrder.push_back("");
 
@@ -412,20 +480,25 @@ void If(ifstream& file, LexTok& token) {
 
 	expect("end", token, file);
 
-	
-	//branch to endIf (probably these statements should be inserted after)
-	//assemblyCommands.push_back("b endIf" + to_string(ifCount));
-	
-	//calls the endIf branch (these statements should be inputted after)
-	//assemblyCommands.push_back("endIf" + to_string(ifCount) + ":");
 
+	if (token.lexeme.compare("elsif") == 0 || token.lexeme.compare("else") == 0){
+		assemblyCommands.push_back("b endIf" + to_string(countOfIf));
+	}
 
 	//elseif statements if there are any
 	if (token.lexeme.compare("elsif") == 0) {
 
 		do {
+			elsifCount++;
 			//consume initial elsif
 			expect("elsif", token, file);
+
+			assemblyCommands.push_back("elseif" + to_string(elsifCount) + ":");
+
+			//add the label to the associated branch
+			assemblyCommands[location.back()] += "elseif" + to_string(elsifCount);
+			location.pop_back();
+
 
 			expect("(", token, file);
 			//call Cond function
@@ -433,11 +506,19 @@ void If(ifstream& file, LexTok& token) {
 
 			expect(")", token, file);
 
+			assemblyCommands.push_back(cond);
+			location.push_back(assemblyCommands.size() - 1);
+
 			expect("begin", token, file);
 			//call StmtList function
 			StmtList(file, token);
 
 			expect("end", token, file);
+
+			if (token.lexeme.compare("elsif") == 0 || token.lexeme.compare("else") == 0){
+				assemblyCommands.push_back("b endIf" + to_string(countOfIf));
+			}
+
 
 		} while (token.lexeme.compare("elsif") == 0); //continues the loop if elseif token is present
 
@@ -446,17 +527,30 @@ void If(ifstream& file, LexTok& token) {
 	//checking for else statement
 
 	if (token.lexeme.compare("else") == 0) {
-		assemblyCommands.push_back("else"+ ifCount);
+		assemblyCommands.push_back("else" + to_string(countOfIf) + ":");
 		//consume else token
 		expect("else", token, file);
+		//add the label to the associated branch
+		assemblyCommands[location.back()] += "else" + to_string(countOfIf);
+		location.pop_back();
+
 		expect("begin", token, file);
 		//call StmtList
 		StmtList(file, token);
 		expect("end", token, file);
+
+		//assemblyCommands.push_back("b endIf" + to_string(countOfIf));
+
+	}
+	else{
+		assemblyCommands[location.back()] += "endIf" + to_string(countOfIf);
+		location.pop_back();
+
 	}
 
+
 	//branch to end the complete ifStatement
-	assemblyCommands.push_back("b endIf" + countOfIf);
+	assemblyCommands.push_back("endif" + to_string(countOfIf) + ":");
 }
 
 void While(ifstream& file, LexTok& token) {
@@ -534,7 +628,7 @@ string Cond(ifstream& file, LexTok& token) {
 	//clears the registers used in the conditional to free up for the following function
 	int mo = r1[2] - '0';
 	tRegister[mo] = "";
-	
+
 	mo = r2[2] - '0';
 	tRegister[mo] = "";
 
@@ -629,9 +723,6 @@ string Expr(ifstream& file, LexTok& token) {
 
 	//return the register with the value
 	return r1;
-
-	//Output rule
-	/*cout << "Expr => Term { (+|-) Term }" << endl;*/
 }
 
 //Grace
@@ -699,6 +790,24 @@ string Factor(ifstream& file, LexTok& token) {
 	if (token.token.compare("Identifier") == 0)
 	{
 		in = token.lexeme;
+
+		//check if variable is declared
+		bool err = false;
+
+		for (vector<string>::iterator it = list.begin(); it != list.end(); it++){
+			if (token.lexeme.compare(*it) != 0){
+				err = true;
+			}
+			else{
+				err = false;
+				break;
+			}
+		}
+		if (err == true){
+			cout << "error: using " << token.lexeme << " without declaring first" << endl;
+		}
+		
+
 		//consume token
 		token = lexer(file);
 
