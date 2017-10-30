@@ -21,6 +21,10 @@ vector <string> assemblyCommands;
 //
 string tRegister[10] = {};
 
+vector<string> list;
+
+vector <string> ifOrder;
+
 int whileCount = 0;
 int ifCount = 1;
 int elsifCount = 0;
@@ -153,6 +157,7 @@ vector<string> Decl(ifstream& file, LexTok& token) {
 
 	vector<string> vars;
 	string t = "";
+	bool error = false;
 
 	//Call Type function
 	t = Type(file, token);
@@ -381,6 +386,9 @@ void Write(ifstream& file, LexTok& token) {
 void If(ifstream& file, LexTok& token) {
 	string cond = "";
 	
+	//keeps the current count of how many if's have been encountered locally
+	int countOfIf = ifCount;
+
 
 	//consumes if
 	expect("if", token, file);
@@ -392,8 +400,10 @@ void If(ifstream& file, LexTok& token) {
 
 	expect(")", token, file);
 
-	//pushes the first endIf to fulfill the first condition
-	assemblyCommands.push_back(cond + "endIf" + to_string(ifCount));
+	//pushes the first endIf to fulfill the first condition (incomplete statement, will add branch to go to after checking)
+	assemblyCommands.push_back(cond);
+
+	ifOrder.push_back("");
 
 	expect("begin", token, file);
 
@@ -403,11 +413,11 @@ void If(ifstream& file, LexTok& token) {
 	expect("end", token, file);
 
 	
-	//branch to endIf
-	assemblyCommands.push_back("b endIf" + to_string(ifCount));
+	//branch to endIf (probably these statements should be inserted after)
+	//assemblyCommands.push_back("b endIf" + to_string(ifCount));
 	
-	//calls the endIf branch
-	assemblyCommands.push_back("endIf" + to_string(ifCount) + ":");
+	//calls the endIf branch (these statements should be inputted after)
+	//assemblyCommands.push_back("endIf" + to_string(ifCount) + ":");
 
 
 	//elseif statements if there are any
@@ -436,6 +446,7 @@ void If(ifstream& file, LexTok& token) {
 	//checking for else statement
 
 	if (token.lexeme.compare("else") == 0) {
+		assemblyCommands.push_back("else"+ ifCount);
 		//consume else token
 		expect("else", token, file);
 		expect("begin", token, file);
@@ -443,6 +454,9 @@ void If(ifstream& file, LexTok& token) {
 		StmtList(file, token);
 		expect("end", token, file);
 	}
+
+	//branch to end the complete ifStatement
+	assemblyCommands.push_back("b endIf" + countOfIf);
 }
 
 void While(ifstream& file, LexTok& token) {
