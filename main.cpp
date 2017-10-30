@@ -16,37 +16,37 @@ Tested using both IDE and command line
 using namespace std;
 
 //main that takes in a file argument
-//int main(int argc, char* argv[]) {
-//	//if argument list is missing file name
-//	if (argc < 2) {
-//		//output error message
-//		cout << "Missing file name..." << endl;
-//		return 1;
-//	}
-//	//opens teh file
-//	ifstream fin(argv[1]);
-//	//if file can not open, output error message
-//	if (!fin) {
-//		cout << "file not found..." << endl;
-//		return 1;
-//	}
-//
-//	parser(fin); //parser function which takes in the file
-//	//closes file after program completes
-//	fin.close();
-//
-//	return 0;
-//}
-//testing function within IDE's
-int main() {
-	ifstream fin("eight.txt");
-
+int main(int argc, char* argv[]) {
+	//if argument list is missing file name
+	if (argc < 2) {
+		//output error message
+		cout << "Missing file name..." << endl;
+		return 1;
+	}
+	//opens teh file
+	ifstream fin(argv[1]);
+	//if file can not open, output error message
 	if (!fin) {
-		cout << "file not found...";
+		cout << "file not found..." << endl;
 		return 1;
 	}
 
-	parser(fin);
+	parser(fin); //parser function which takes in the file
+	//closes file after program completes
 	fin.close();
 
+	return 0;
 }
+//testing function within IDE's
+//int main() {
+//	ifstream fin("six.txt");
+//
+//	if (!fin) {
+//		cout << "file not found...";
+//		return 1;
+//	}
+//
+//	parser(fin);
+//	fin.close();
+//
+//}

@@ -502,7 +502,7 @@ void If(ifstream& file, LexTok& token) {
 
 			expect("(", token, file);
 			//call Cond function
-			Cond(file, token);
+			cond = Cond(file, token);
 
 			expect(")", token, file);
 
